@@ -127,3 +127,68 @@ export function registerStudentForEvent(
 
   return { success: true, registration: newRegistration }
 }
+
+export type CancellationResult =
+  | { success: true; registration: Registration }
+  | { success: false; error: string }
+
+/**
+ * Cancels an active registration for a student:
+ * 1. Validates authenticated student
+ * 2. Validates registration existence and ownership
+ * 3. Validates registration is currently active ('confirmed')
+ * 4. Validates related event existence
+ * 5. Updates status to 'cancelled' and restores exactly 1 seat (capped at capacity)
+ */
+export function cancelRegistration(
+  user: AppUser | null | undefined,
+  registrationId: string,
+): CancellationResult {
+  // 1. Authentication / Role check
+  if (!user) {
+    return {
+      success: false,
+      error: 'You must be logged in to cancel a registration.',
+    }
+  }
+  if (user.role !== 'student') {
+    return {
+      success: false,
+      error: 'Only students can manage registrations.',
+    }
+  }
+
+  // 2. Registration existence check
+  const reg = registrations.find((r) => r.id === registrationId)
+  if (!reg) {
+    return { success: false, error: 'Registration not found.' }
+  }
+
+  // 3. Ownership check
+  if (reg.studentId !== user.id) {
+    return {
+      success: false,
+      error: 'You can only cancel your own registrations.',
+    }
+  }
+
+  // 4. Active status check
+  if (reg.status !== 'confirmed') {
+    return { success: false, error: 'Registration is already cancelled.' }
+  }
+
+  // 5. Related event check
+  const event = getEventById(reg.eventId)
+  if (!event) {
+    return { success: false, error: 'Associated event not found.' }
+  }
+
+  // 6. Update status and restore exactly 1 seat
+  reg.status = 'cancelled'
+  if (event.seatsAvailable < event.capacity) {
+    event.seatsAvailable += 1
+  }
+
+  return { success: true, registration: reg }
+}
+
