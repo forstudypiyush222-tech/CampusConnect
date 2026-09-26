@@ -1,5 +1,13 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
 import { getEventById, isPastEvent, isFullEvent } from '@/data/events'
+import {
+  hasActiveRegistration,
+  registerStudentForEvent,
+} from '@/data/registrations'
+import { useAuth } from '@/components/AuthProvider'
 import StatusBadge from '@/components/StatusBadge'
 import EmptyState from '@/components/EmptyState'
 
@@ -24,7 +32,15 @@ export default function EventDetailPage({
 }: {
   params: { id: string }
 }) {
+  const { currentUser } = useAuth()
   const event = getEventById(params.id)
+
+  const [feedback, setFeedback] = useState<{
+    type: 'success' | 'error'
+    message: string
+  } | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [, setTick] = useState(0)
 
   if (!event) {
     return (
@@ -51,7 +67,54 @@ export default function EventDetailPage({
       : full
         ? 'full'
         : 'open'
-  const canRegister = !past && !full && !event.cancelled
+
+  const isRegistered = Boolean(
+    currentUser &&
+      currentUser.role === 'student' &&
+      hasActiveRegistration(currentUser.id, event.id),
+  )
+
+  const isOrganizer = currentUser?.role === 'organizer'
+
+  const canRegister =
+    !past && !full && !event.cancelled && !isRegistered && !isOrganizer
+
+  const handleRegister = () => {
+    if (submitting) return
+    setSubmitting(true)
+    const result = registerStudentForEvent(currentUser, event.id)
+    if (result.success) {
+      setFeedback({
+        type: 'success',
+        message: 'Successfully registered for this event!',
+      })
+    } else {
+      setFeedback({
+        type: 'error',
+        message: result.error,
+      })
+    }
+    setSubmitting(false)
+    setTick((t) => t + 1)
+  }
+
+  const buttonLabel = isRegistered
+    ? 'Registered'
+    : isOrganizer
+      ? 'Student registration only'
+      : canRegister
+        ? submitting
+          ? 'Registering…'
+          : 'Register'
+        : status === 'full'
+          ? 'Event full'
+          : 'Registration closed'
+
+  const buttonTitle = isRegistered
+    ? 'You are already registered for this event'
+    : isOrganizer
+      ? 'Only students can register for events'
+      : undefined
 
   return (
     <section className="shell" style={{ padding: '40px 0 64px' }}>
@@ -96,22 +159,41 @@ export default function EventDetailPage({
             value={`${event.seatsAvailable} of ${event.capacity} available`}
           />
 
-          {/* PARTICIPANT TASK (Task 2 — Registration): this button is a
-              placeholder. Wire it to a registration form and the
-              POST /api/registrations route, and make sure it respects
-              login state, duplicate registrations, full events, and
-              past/cancelled events. */}
+          {feedback && (
+            <div
+              role="status"
+              style={{
+                padding: '10px 14px',
+                borderRadius: 'var(--radius)',
+                fontSize: 13.5,
+                fontWeight: 500,
+                background:
+                  feedback.type === 'success'
+                    ? 'var(--green-bg)'
+                    : 'var(--rust-bg)',
+                color:
+                  feedback.type === 'success'
+                    ? 'var(--green)'
+                    : 'var(--rust)',
+                border: `1.5px solid ${
+                  feedback.type === 'success'
+                    ? 'var(--green)'
+                    : 'var(--rust)'
+                }`,
+              }}
+            >
+              {feedback.message}
+            </div>
+          )}
+
           <button
             className="btn btn-primary"
-            disabled={!canRegister}
+            onClick={handleRegister}
+            disabled={!canRegister || submitting}
             style={{ marginTop: 4 }}
-            title="Registration isn't wired up yet — that's Task 2"
+            title={buttonTitle}
           >
-            {canRegister
-              ? 'Register'
-              : status === 'full'
-                ? 'Event full'
-                : 'Registration closed'}
+            {buttonLabel}
           </button>
         </aside>
       </div>
