@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { getEventById, isPastEvent, isFullEvent } from '@/data/events'
 import {
   hasActiveRegistration,
@@ -32,15 +33,24 @@ export default function EventDetailPage({
 }: {
   params: { id: string }
 }) {
-  const { currentUser } = useAuth()
-  const event = getEventById(params.id)
-
+  const { currentUser, isHydrated } = useAuth()
+  const router = useRouter()
   const [feedback, setFeedback] = useState<{
     type: 'success' | 'error'
     message: string
   } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [, setTick] = useState(0)
+
+  if (!isHydrated) {
+    return (
+      <section className="shell" style={{ padding: '56px 0', textAlign: 'center' }}>
+        <p style={{ color: 'var(--ink-soft)' }}>Loading event details…</p>
+      </section>
+    )
+  }
+
+  const event = getEventById(params.id)
 
   if (!event) {
     return (
@@ -80,6 +90,11 @@ export default function EventDetailPage({
     !past && !full && !event.cancelled && !isRegistered && !isOrganizer
 
   const handleRegister = () => {
+    // Redirect logged-out users to the login page with return URL
+    if (!currentUser) {
+      router.push(`/login?returnTo=/events/${event.id}`)
+      return
+    }
     if (submitting) return
     setSubmitting(true)
     const result = registerStudentForEvent(currentUser, event.id)
@@ -98,23 +113,33 @@ export default function EventDetailPage({
     setTick((t) => t + 1)
   }
 
+  const isLoggedOut = !currentUser
+
   const buttonLabel = isRegistered
     ? 'Registered'
     : isOrganizer
       ? 'Student registration only'
-      : canRegister
-        ? submitting
-          ? 'Registering…'
-          : 'Register'
-        : status === 'full'
-          ? 'Event full'
-          : 'Registration closed'
+      : isLoggedOut
+        ? canRegister
+          ? 'Log in to register'
+          : status === 'full'
+            ? 'Event full'
+            : 'Registration closed'
+        : canRegister
+          ? submitting
+            ? 'Registering…'
+            : 'Register'
+          : status === 'full'
+            ? 'Event full'
+            : 'Registration closed'
 
   const buttonTitle = isRegistered
     ? 'You are already registered for this event'
     : isOrganizer
       ? 'Only students can register for events'
-      : undefined
+      : isLoggedOut
+        ? 'Please log in as a student to register'
+        : undefined
 
   return (
     <section className="shell" style={{ padding: '40px 0 64px' }}>

@@ -15,18 +15,24 @@ describe('Feature 3 — My Registrations & Cancellation Requirements', () => {
     id: 'stu-myreg-test',
     name: 'MyReg Student',
     role: 'student',
+    email: 'myreg-student@campus.edu',
+    password: 'test1234',
   }
 
   const otherStudent: AppUser = {
     id: 'stu-other-test',
     name: 'Other Student',
     role: 'student',
+    email: 'other-student@campus.edu',
+    password: 'test1234',
   }
 
   const organizerUser: AppUser = {
     id: 'org-myreg-test',
     name: 'Organizer User',
     role: 'organizer',
+    email: 'org-myreg@campus.edu',
+    password: 'test1234',
   }
 
   let upcomingEvent: CampusEvent

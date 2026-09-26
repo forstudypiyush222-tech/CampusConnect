@@ -17,7 +17,7 @@ import EmptyState from '@/components/EmptyState'
 import StatusBadge from '@/components/StatusBadge'
 
 export default function OrganizerPage() {
-  const { currentUser } = useAuth()
+  const { currentUser, isHydrated } = useAuth()
   const [, setTick] = useState(0)
 
   const [feedback, setFeedback] = useState<{
@@ -38,12 +38,24 @@ export default function OrganizerPage() {
   const [formCapacity, setFormCapacity] = useState<number>(50)
   const [formError, setFormError] = useState<string | null>(null)
 
-  if (currentUser.role !== 'organizer') {
+  if (!isHydrated) {
+    return (
+      <section className="shell" style={{ padding: '56px 0', textAlign: 'center' }}>
+        <p style={{ color: 'var(--ink-soft)' }}>Loading session…</p>
+      </section>
+    )
+  }
+
+  if (!currentUser || currentUser.role !== 'organizer') {
     return (
       <section className="shell" style={{ padding: '56px 0' }}>
         <EmptyState
-          title="This page is for organizers"
-          description="Switch to an organizer account from the top-right menu to manage events."
+          title={!currentUser ? 'Login required' : 'This page is for organizers'}
+          description={
+            !currentUser
+              ? 'Please log in as an organizer from the top-right menu to manage events.'
+              : 'Switch to an organizer account from the top-right menu to manage events.'
+          }
         />
       </section>
     )

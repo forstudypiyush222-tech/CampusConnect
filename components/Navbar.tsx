@@ -13,7 +13,7 @@ const LINKS = [
 
 export default function Navbar() {
   const pathname = usePathname()
-  const { currentUser, setCurrentUserId, allUsers } = useAuth()
+  const { currentUser, setCurrentUserId, allUsers, logout } = useAuth()
 
   return (
     <header
@@ -67,10 +67,15 @@ export default function Navbar() {
 
         <nav aria-label="Primary">
           <ul style={{ display: 'flex', gap: 4 }}>
-            {LINKS.filter(
-              (link) =>
-                link.href !== '/organizer' || currentUser.role === 'organizer',
-            ).map((link) => {
+            {LINKS.filter((link) => {
+              if (link.href === '/organizer') {
+                return currentUser?.role === 'organizer'
+              }
+              if (link.href === '/registrations') {
+                return currentUser?.role === 'student'
+              }
+              return true
+            }).map((link) => {
               const active =
                 link.href === '/'
                   ? pathname === '/'
@@ -98,39 +103,67 @@ export default function Navbar() {
           </ul>
         </nav>
 
-        <label
+        <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
+            gap: 10,
             fontSize: 13,
             color: 'var(--ink-soft)',
           }}
         >
-          <span className="eyebrow-tag" style={{ whiteSpace: 'nowrap' }}>
-            {currentUser.role}
-          </span>
-          <select
-            aria-label="Switch current user"
-            value={currentUser.id}
-            onChange={(e) => setCurrentUserId(e.target.value)}
-            style={{
-              border: '1.5px solid var(--line)',
-              borderRadius: 'var(--radius)',
-              padding: '6px 8px',
-              fontSize: 13.5,
-              background: 'var(--paper-raised)',
-              color: 'var(--ink)',
-            }}
-          >
-            {allUsers.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.name}
-              </option>
-            ))}
-          </select>
-        </label>
+          {currentUser ? (
+            <>
+              <span className="eyebrow-tag" style={{ whiteSpace: 'nowrap' }}>
+                {currentUser.role}
+              </span>
+              <select
+                aria-label="Switch current user"
+                value={currentUser.id}
+                onChange={(e) => setCurrentUserId(e.target.value)}
+                style={{
+                  border: '1.5px solid var(--line)',
+                  borderRadius: 'var(--radius)',
+                  padding: '6px 8px',
+                  fontSize: 13.5,
+                  background: 'var(--paper-raised)',
+                  color: 'var(--ink)',
+                }}
+              >
+                {allUsers.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={logout}
+                style={{ padding: '6px 12px', fontSize: 13 }}
+                title="Log out"
+              >
+                Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="eyebrow-tag" style={{ whiteSpace: 'nowrap' }}>
+                guest
+              </span>
+              <Link
+                href="/login"
+                className="btn btn-primary"
+                style={{ padding: '6px 14px', fontSize: 13 }}
+              >
+                Log in
+              </Link>
+            </>
+
+          )}
+        </div>
       </div>
     </header>
   )
 }
+

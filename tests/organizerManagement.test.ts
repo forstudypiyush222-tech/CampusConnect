@@ -20,18 +20,24 @@ describe('Feature 4 — Organizer Event Management', () => {
     id: 'org-test-mgr',
     name: 'Manager Organizer',
     role: 'organizer',
+    email: 'manager@campus.edu',
+    password: 'test1234',
   }
 
   const otherOrganizer: AppUser = {
     id: 'org-test-other',
     name: 'Other Organizer',
     role: 'organizer',
+    email: 'other-org@campus.edu',
+    password: 'test1234',
   }
 
   const studentUser: AppUser = {
     id: 'stu-test-org',
     name: 'Student User',
     role: 'student',
+    email: 'stu-org@campus.edu',
+    password: 'test1234',
   }
 
   let sampleEvent: CampusEvent
@@ -267,8 +273,8 @@ describe('Feature 4 — Organizer Event Management', () => {
   // 17. Capacity correctly accounts for active confirmed registrations
   it('updates seatsAvailable correctly when capacity is modified', () => {
     // Register 2 students
-    const s1: AppUser = { id: `stu-1-${Math.random()}`, name: 'S1', role: 'student' }
-    const s2: AppUser = { id: `stu-2-${Math.random()}`, name: 'S2', role: 'student' }
+    const s1: AppUser = { id: `stu-1-${Math.random()}`, name: 'S1', role: 'student', email: `s1-${Math.random()}@test.com`, password: 'test1234' }
+    const s2: AppUser = { id: `stu-2-${Math.random()}`, name: 'S2', role: 'student', email: `s2-${Math.random()}@test.com`, password: 'test1234' }
     registerStudentForEvent(s1, sampleEvent.id)
     registerStudentForEvent(s2, sampleEvent.id)
 
@@ -283,8 +289,8 @@ describe('Feature 4 — Organizer Event Management', () => {
 
   // 18. Capacity cannot be reduced below active registrations
   it('rejects capacity reduction below current active registrations', () => {
-    const s1: AppUser = { id: `stu-cap1-${Math.random()}`, name: 'S1', role: 'student' }
-    const s2: AppUser = { id: `stu-cap2-${Math.random()}`, name: 'S2', role: 'student' }
+    const s1: AppUser = { id: `stu-cap1-${Math.random()}`, name: 'S1', role: 'student', email: `cap1-${Math.random()}@test.com`, password: 'test1234' }
+    const s2: AppUser = { id: `stu-cap2-${Math.random()}`, name: 'S2', role: 'student', email: `cap2-${Math.random()}@test.com`, password: 'test1234' }
     registerStudentForEvent(s1, sampleEvent.id)
     registerStudentForEvent(s2, sampleEvent.id)
 
@@ -335,7 +341,7 @@ describe('Feature 4 — Organizer Event Management', () => {
 
   // 24. Cancelling does not corrupt existing registration records
   it('preserves registration records when event is cancelled', () => {
-    const s1: AppUser = { id: `stu-pres-${Math.random()}`, name: 'S1', role: 'student' }
+    const s1: AppUser = { id: `stu-pres-${Math.random()}`, name: 'S1', role: 'student', email: `pres-${Math.random()}@test.com`, password: 'test1234' }
     const regRes = registerStudentForEvent(s1, sampleEvent.id)
     expect(regRes.success).toBe(true)
     if (!regRes.success) return
@@ -373,7 +379,7 @@ describe('Feature 4 — Organizer Event Management', () => {
 
   // 28. No broken registration references remain after deletion
   it('removes associated registrations so no broken references remain', () => {
-    const s1: AppUser = { id: `stu-del-${Math.random()}`, name: 'S1', role: 'student' }
+    const s1: AppUser = { id: `stu-del-${Math.random()}`, name: 'S1', role: 'student', email: `del-${Math.random()}@test.com`, password: 'test1234' }
     registerStudentForEvent(s1, sampleEvent.id)
 
     expect(registrations.some((r) => r.eventId === sampleEvent.id)).toBe(true)

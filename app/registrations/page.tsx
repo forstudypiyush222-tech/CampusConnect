@@ -13,19 +13,31 @@ import StatusBadge from '@/components/StatusBadge'
 import EmptyState from '@/components/EmptyState'
 
 export default function RegistrationsPage() {
-  const { currentUser } = useAuth()
+  const { currentUser, isHydrated } = useAuth()
   const [, setTick] = useState(0)
   const [feedback, setFeedback] = useState<{
     type: 'success' | 'error'
     message: string
   } | null>(null)
 
-  if (currentUser.role !== 'student') {
+  if (!isHydrated) {
+    return (
+      <section className="shell" style={{ padding: '56px 0', textAlign: 'center' }}>
+        <p style={{ color: 'var(--ink-soft)' }}>Loading session…</p>
+      </section>
+    )
+  }
+
+  if (!currentUser || currentUser.role !== 'student') {
     return (
       <section className="shell" style={{ padding: '56px 0' }}>
         <EmptyState
-          title="This page is for students"
-          description="Switch to a student account from the top-right menu to see registered events."
+          title={!currentUser ? 'Login required' : 'This page is for students'}
+          description={
+            !currentUser
+              ? 'Please log in as a student from the top-right menu to view your registrations.'
+              : 'Switch to a student account from the top-right menu to see registered events.'
+          }
         />
       </section>
     )

@@ -8,6 +8,7 @@ import {
   searchEventsByName,
   filterEventsByCategory,
 } from '@/data/events'
+import { useAuth } from '@/components/AuthProvider'
 import EventCard from '@/components/EventCard'
 import EmptyState from '@/components/EmptyState'
 
@@ -22,8 +23,17 @@ const CATEGORIES: (EventCategory | 'All')[] = [
 ]
 
 export default function EventsPage() {
+  const { isHydrated } = useAuth()
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<EventCategory | 'All'>('All')
+
+  if (!isHydrated) {
+    return (
+      <section className="shell" style={{ padding: '56px 0', textAlign: 'center' }}>
+        <p style={{ color: 'var(--ink-soft)' }}>Loading events…</p>
+      </section>
+    )
+  }
 
   const eligibleEvents = events.filter((e) => !isPastEvent(e) && !e.cancelled)
   const searchedEvents = searchEventsByName(eligibleEvents, query)

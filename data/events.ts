@@ -1,5 +1,5 @@
 import { AppUser } from './auth'
-import { registrations } from './registrations'
+import { registrations, savePersistedRegistrations } from './registrations'
 
 export type EventCategory =
   | 'Tech'
@@ -25,7 +25,7 @@ export interface CampusEvent {
 // "Today" for the seed data. Events before this are considered past.
 export const TODAY = new Date('2026-09-16T09:00:00')
 
-export const events: CampusEvent[] = [
+export const SEED_EVENTS: CampusEvent[] = [
   {
     id: 'evt-01',
     name: 'Hack the Campus 2026',
@@ -223,6 +223,91 @@ export const events: CampusEvent[] = [
   },
 ]
 
+export const events: CampusEvent[] = [
+  ...SEED_EVENTS.map((e) => ({ ...e })),
+]
+
+export const EVENT_STORAGE_KEY = 'campusconnect_events'
+
+function getLocalStorage(): Storage | null {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return window.localStorage
+  }
+  if (typeof globalThis !== 'undefined' && (globalThis as any).localStorage) {
+    return (globalThis as any).localStorage
+  }
+  return null
+}
+
+export function loadPersistedEvents(): CampusEvent[] | null {
+  const storage = getLocalStorage()
+  if (!storage) return null
+  try {
+    const raw = storage.getItem(EVENT_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) {
+      return parsed
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return null
+}
+
+export function savePersistedEvents(eventsToSave: CampusEvent[]): void {
+  const storage = getLocalStorage()
+  if (!storage) return
+  try {
+    storage.setItem(EVENT_STORAGE_KEY, JSON.stringify(eventsToSave))
+  } catch {
+    // ignore storage exceptions
+  }
+}
+
+export function syncEventsFromStorage(): CampusEvent[] {
+  const persisted = loadPersistedEvents()
+  if (!persisted) {
+    return events
+  }
+
+  const persistedIds = new Set(persisted.map((e) => e.id))
+
+  // 1. Remove events that are no longer in persisted
+  for (let i = events.length - 1; i >= 0; i--) {
+    if (!persistedIds.has(events[i].id)) {
+      events.splice(i, 1)
+    }
+  }
+
+  // 2. Update existing events in-place, or append new events
+  for (const pEvent of persisted) {
+    const existing = events.find((e) => e.id === pEvent.id)
+    if (existing) {
+      Object.assign(existing, pEvent)
+    } else {
+      events.push(pEvent)
+    }
+  }
+
+  return events
+}
+
+export function resetEventsToSeed(): void {
+  const storage = getLocalStorage()
+  if (storage) {
+    try {
+      storage.removeItem(EVENT_STORAGE_KEY)
+    } catch {}
+  }
+  events.length = 0
+  events.push(...SEED_EVENTS.map((e) => ({ ...e })))
+}
+
+if (typeof window !== 'undefined') {
+  syncEventsFromStorage()
+}
+
 /** True when the event's date has already passed relative to TODAY. */
 export function isPastEvent(event: CampusEvent): boolean {
   return new Date(event.date).getTime() < TODAY.getTime()
@@ -235,6 +320,7 @@ export function isFullEvent(event: CampusEvent): boolean {
 
 /** Look up a single event by id, or undefined if it doesn't exist. */
 export function getEventById(id: string): CampusEvent | undefined {
+  syncEventsFromStorage()
   return events.find((event) => event.id === id)
 }
 
@@ -300,6 +386,8 @@ export function createEvent(
   user: AppUser | null | undefined,
   input: CreateEventInput,
 ): EventResult {
+  syncEventsFromStorage()
+
   if (!user || user.role !== 'organizer') {
     return { success: false, error: 'Only organizers can create events.' }
   }
@@ -347,6 +435,7 @@ export function createEvent(
   }
 
   events.push(newEvent)
+  savePersistedEvents(events)
   return { success: true, event: newEvent }
 }
 
@@ -355,6 +444,8 @@ export function updateEvent(
   eventId: string,
   input: UpdateEventInput,
 ): EventResult {
+  syncEventsFromStorage()
+
   if (!user || user.role !== 'organizer') {
     return { success: false, error: 'Only organizers can edit events.' }
   }
@@ -428,6 +519,7 @@ export function updateEvent(
   if (input.date !== undefined) event.date = input.date
   if (input.category !== undefined) event.category = input.category
 
+  savePersistedEvents(events)
   return { success: true, event }
 }
 
@@ -435,6 +527,8 @@ export function cancelEvent(
   user: AppUser | null | undefined,
   eventId: string,
 ): EventResult {
+  syncEventsFromStorage()
+
   if (!user || user.role !== 'organizer') {
     return { success: false, error: 'Only organizers can cancel events.' }
   }
@@ -447,6 +541,7 @@ export function cancelEvent(
   }
 
   event.cancelled = true
+  savePersistedEvents(events)
   return { success: true, event }
 }
 
@@ -454,6 +549,8 @@ export function deleteEvent(
   user: AppUser | null | undefined,
   eventId: string,
 ): DeleteEventResult {
+  syncEventsFromStorage()
+
   if (!user || user.role !== 'organizer') {
     return { success: false, error: 'Only organizers can delete events.' }
   }
@@ -467,14 +564,14 @@ export function deleteEvent(
   }
 
   events.splice(index, 1)
+  savePersistedEvents(events)
 
   for (let i = registrations.length - 1; i >= 0; i--) {
     if (registrations[i].eventId === eventId) {
       registrations.splice(i, 1)
     }
   }
+  savePersistedRegistrations(registrations)
 
   return { success: true }
 }
-
-

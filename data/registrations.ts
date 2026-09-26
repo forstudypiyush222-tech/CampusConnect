@@ -1,5 +1,12 @@
 import { AppUser } from './auth'
-import { getEventById, isPastEvent, isFullEvent } from './events'
+import {
+  events,
+  getEventById,
+  isPastEvent,
+  isFullEvent,
+  savePersistedEvents,
+  syncEventsFromStorage,
+} from './events'
 
 // Seed data for registrations, so the "My Registrations" and Organizer
 // pages have something real to display before participants build the
@@ -15,11 +22,7 @@ export interface Registration {
   registeredAt: string // ISO date string
 }
 
-// NOTE FOR PARTICIPANTS: this array is the "database" of registrations.
-// Task 2 (Registration) means pushing new items into this array when a
-// student registers. Task 3 (Cancellation) means updating an item's
-// status here. Keep using this same array — don't create a second store.
-export const registrations: Registration[] = [
+export const SEED_REGISTRATIONS: Registration[] = [
   {
     id: 'reg-01',
     eventId: 'evt-01',
@@ -43,8 +46,94 @@ export const registrations: Registration[] = [
   },
 ]
 
+export const registrations: Registration[] = [
+  ...SEED_REGISTRATIONS.map((r) => ({ ...r })),
+]
+
+export const REGISTRATION_STORAGE_KEY = 'campusconnect_registrations'
+
+function getLocalStorage(): Storage | null {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return window.localStorage
+  }
+  if (typeof globalThis !== 'undefined' && (globalThis as any).localStorage) {
+    return (globalThis as any).localStorage
+  }
+  return null
+}
+
+export function loadPersistedRegistrations(): Registration[] | null {
+  const storage = getLocalStorage()
+  if (!storage) return null
+  try {
+    const raw = storage.getItem(REGISTRATION_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) {
+      return parsed
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return null
+}
+
+export function savePersistedRegistrations(regsToSave: Registration[]): void {
+  const storage = getLocalStorage()
+  if (!storage) return
+  try {
+    storage.setItem(REGISTRATION_STORAGE_KEY, JSON.stringify(regsToSave))
+  } catch {
+    // ignore storage exceptions
+  }
+}
+
+export function syncRegistrationsFromStorage(): Registration[] {
+  const persisted = loadPersistedRegistrations()
+  if (!persisted) {
+    return registrations
+  }
+
+  const persistedIds = new Set(persisted.map((r) => r.id))
+
+  // 1. Remove registrations that are no longer in persisted
+  for (let i = registrations.length - 1; i >= 0; i--) {
+    if (!persistedIds.has(registrations[i].id)) {
+      registrations.splice(i, 1)
+    }
+  }
+
+  // 2. Update existing in-place, or append new
+  for (const pReg of persisted) {
+    const existing = registrations.find((r) => r.id === pReg.id)
+    if (existing) {
+      Object.assign(existing, pReg)
+    } else {
+      registrations.push(pReg)
+    }
+  }
+
+  return registrations
+}
+
+export function resetRegistrationsToSeed(): void {
+  const storage = getLocalStorage()
+  if (storage) {
+    try {
+      storage.removeItem(REGISTRATION_STORAGE_KEY)
+    } catch {}
+  }
+  registrations.length = 0
+  registrations.push(...SEED_REGISTRATIONS.map((r) => ({ ...r })))
+}
+
+if (typeof window !== 'undefined') {
+  syncRegistrationsFromStorage()
+}
+
 /** Simple lookup used by the placeholder "My Registrations" page. */
 export function getRegistrationsForStudent(studentId: string): Registration[] {
+  syncRegistrationsFromStorage()
   return registrations.filter((reg) => reg.studentId === studentId)
 }
 
@@ -53,6 +142,7 @@ export function hasActiveRegistration(
   studentId: string,
   eventId: string,
 ): boolean {
+  syncRegistrationsFromStorage()
   return registrations.some(
     (reg) =>
       reg.studentId === studentId &&
@@ -72,12 +162,15 @@ export type RegistrationResult =
  * 3. Event status check (past / cancelled)
  * 4. Duplicate registration check
  * 5. Capacity check
- * 6. Atomic creation and seat decrement
+ * 6. Atomic creation, seat decrement, and storage persistence
  */
 export function registerStudentForEvent(
   user: AppUser | null | undefined,
   eventId: string,
 ): RegistrationResult {
+  syncRegistrationsFromStorage()
+  syncEventsFromStorage()
+
   // 1. AUTHENTICATION / ROLE
   if (!user) {
     return { success: false, error: 'You must be logged in to register.' }
@@ -125,6 +218,9 @@ export function registerStudentForEvent(
   registrations.push(newRegistration)
   event.seatsAvailable -= 1
 
+  savePersistedRegistrations(registrations)
+  savePersistedEvents(events)
+
   return { success: true, registration: newRegistration }
 }
 
@@ -138,12 +234,15 @@ export type CancellationResult =
  * 2. Validates registration existence and ownership
  * 3. Validates registration is currently active ('confirmed')
  * 4. Validates related event existence
- * 5. Updates status to 'cancelled' and restores exactly 1 seat (capped at capacity)
+ * 5. Updates status to 'cancelled', restores exactly 1 seat (capped at capacity), and persists
  */
 export function cancelRegistration(
   user: AppUser | null | undefined,
   registrationId: string,
 ): CancellationResult {
+  syncRegistrationsFromStorage()
+  syncEventsFromStorage()
+
   // 1. Authentication / Role check
   if (!user) {
     return {
@@ -189,6 +288,8 @@ export function cancelRegistration(
     event.seatsAvailable += 1
   }
 
+  savePersistedRegistrations(registrations)
+  savePersistedEvents(events)
+
   return { success: true, registration: reg }
 }
-

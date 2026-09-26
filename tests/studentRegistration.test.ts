@@ -12,12 +12,16 @@ describe('Feature 2 — Student Registration Requirements', () => {
     id: 'stu-test',
     name: 'Test Student',
     role: 'student',
+    email: 'test-student@campus.edu',
+    password: 'test1234',
   }
 
   const organizerUser: AppUser = {
     id: 'org-test',
     name: 'Test Organizer',
     role: 'organizer',
+    email: 'test-organizer@campus.edu',
+    password: 'test1234',
   }
 
   // Create a clean test event before each test
