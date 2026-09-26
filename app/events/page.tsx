@@ -1,8 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { events, EventCategory } from '@/data/events'
+import {
+  events,
+  EventCategory,
+  isPastEvent,
+  searchEventsByName,
+  filterEventsByCategory,
+} from '@/data/events'
 import EventCard from '@/components/EventCard'
+import EmptyState from '@/components/EmptyState'
 
 const CATEGORIES: (EventCategory | 'All')[] = [
   'All',
@@ -15,14 +22,14 @@ const CATEGORIES: (EventCategory | 'All')[] = [
 ]
 
 export default function EventsPage() {
-  // PARTICIPANT TASK (Task 1): these two pieces of state exist so the
-  // search box and category dropdown below are usable, but right now
-  // nothing actually reads them — the grid below always renders every
-  // event in `events`. Wire this up to `searchEventsByName` and
-  // `filterEventsByCategory` from data/events.ts, and make the two
-  // compose together.
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<EventCategory | 'All'>('All')
+
+  const eligibleEvents = events.filter((e) => !isPastEvent(e) && !e.cancelled)
+  const searchedEvents = searchEventsByName(eligibleEvents, query)
+  const filteredEvents = filterEventsByCategory(searchedEvents, category)
+
+  const isFiltered = query.trim() !== '' || category !== 'All'
 
   return (
     <section className="shell" style={{ padding: '40px 0 64px' }}>
@@ -70,17 +77,42 @@ export default function EventsPage() {
         </select>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-          gap: 16,
-        }}
-      >
-        {events.map((event) => (
-          <EventCard key={event.id} event={event} />
-        ))}
-      </div>
+      {filteredEvents.length === 0 ? (
+        <EmptyState
+          title="No events found"
+          description={
+            isFiltered
+              ? 'No events match your current search or category filter. Try clearing filters or using different keywords.'
+              : 'There are currently no upcoming events posted on the board.'
+          }
+          action={
+            isFiltered ? (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setQuery('')
+                  setCategory('All')
+                }}
+              >
+                Clear filters
+              </button>
+            ) : undefined
+          }
+        />
+      ) : (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+            gap: 16,
+          }}
+        >
+          {filteredEvents.map((event) => (
+            <EventCard key={event.id} event={event} />
+          ))}
+        </div>
+      )}
     </section>
   )
 }
