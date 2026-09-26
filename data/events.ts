@@ -1,3 +1,6 @@
+import { AppUser } from './auth'
+import { registrations } from './registrations'
+
 export type EventCategory =
   | 'Tech'
   | 'Cultural'
@@ -257,4 +260,221 @@ export function filterEventsByCategory(
   }
   return eventList.filter((event) => event.category === category)
 }
+
+export const VALID_CATEGORIES: EventCategory[] = [
+  'Tech',
+  'Cultural',
+  'Sports',
+  'Workshop',
+  'Career',
+  'Music',
+]
+
+export interface CreateEventInput {
+  name: string
+  description: string
+  date: string
+  venue: string
+  category: EventCategory
+  capacity: number
+}
+
+export interface UpdateEventInput {
+  name?: string
+  description?: string
+  date?: string
+  venue?: string
+  category?: EventCategory
+  capacity?: number
+}
+
+export type EventResult =
+  | { success: true; event: CampusEvent }
+  | { success: false; error: string }
+
+export type DeleteEventResult =
+  | { success: true }
+  | { success: false; error: string }
+
+export function createEvent(
+  user: AppUser | null | undefined,
+  input: CreateEventInput,
+): EventResult {
+  if (!user || user.role !== 'organizer') {
+    return { success: false, error: 'Only organizers can create events.' }
+  }
+  if (!input.name || !input.name.trim()) {
+    return { success: false, error: 'Event name is required.' }
+  }
+  if (!input.description || !input.description.trim()) {
+    return { success: false, error: 'Event description is required.' }
+  }
+  if (!input.venue || !input.venue.trim()) {
+    return { success: false, error: 'Event venue is required.' }
+  }
+  if (!input.category || !VALID_CATEGORIES.includes(input.category)) {
+    return { success: false, error: 'Valid event category is required.' }
+  }
+  if (
+    typeof input.capacity !== 'number' ||
+    !Number.isInteger(input.capacity) ||
+    input.capacity <= 0
+  ) {
+    return { success: false, error: 'Capacity must be a positive integer.' }
+  }
+  if (!input.date || !input.date.trim()) {
+    return { success: false, error: 'Event date is required.' }
+  }
+  const eventTime = new Date(input.date).getTime()
+  if (isNaN(eventTime)) {
+    return { success: false, error: 'Event date is invalid.' }
+  }
+  if (eventTime <= TODAY.getTime()) {
+    return { success: false, error: 'Event date must be in the future.' }
+  }
+
+  const newEvent: CampusEvent = {
+    id: `evt-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    name: input.name.trim(),
+    description: input.description.trim(),
+    date: input.date,
+    venue: input.venue.trim(),
+    category: input.category,
+    capacity: input.capacity,
+    seatsAvailable: input.capacity,
+    organizerId: user.id,
+    cancelled: false,
+  }
+
+  events.push(newEvent)
+  return { success: true, event: newEvent }
+}
+
+export function updateEvent(
+  user: AppUser | null | undefined,
+  eventId: string,
+  input: UpdateEventInput,
+): EventResult {
+  if (!user || user.role !== 'organizer') {
+    return { success: false, error: 'Only organizers can edit events.' }
+  }
+  const event = getEventById(eventId)
+  if (!event) {
+    return { success: false, error: 'Event not found.' }
+  }
+  if (event.organizerId !== user.id) {
+    return { success: false, error: 'You can only edit your own events.' }
+  }
+
+  if (input.name !== undefined && (!input.name || !input.name.trim())) {
+    return { success: false, error: 'Event name cannot be empty.' }
+  }
+  if (
+    input.description !== undefined &&
+    (!input.description || !input.description.trim())
+  ) {
+    return { success: false, error: 'Event description cannot be empty.' }
+  }
+  if (input.venue !== undefined && (!input.venue || !input.venue.trim())) {
+    return { success: false, error: 'Event venue cannot be empty.' }
+  }
+  if (
+    input.category !== undefined &&
+    !VALID_CATEGORIES.includes(input.category)
+  ) {
+    return { success: false, error: 'Valid event category is required.' }
+  }
+  if (input.date !== undefined) {
+    if (!input.date.trim()) {
+      return { success: false, error: 'Event date cannot be empty.' }
+    }
+    const eventTime = new Date(input.date).getTime()
+    if (isNaN(eventTime)) {
+      return { success: false, error: 'Event date is invalid.' }
+    }
+    if (eventTime <= TODAY.getTime()) {
+      return { success: false, error: 'Event date must be in the future.' }
+    }
+  }
+
+  if (input.capacity !== undefined) {
+    if (
+      typeof input.capacity !== 'number' ||
+      !Number.isInteger(input.capacity) ||
+      input.capacity <= 0
+    ) {
+      return { success: false, error: 'Capacity must be a positive integer.' }
+    }
+
+    const activeRegistrations = registrations.filter(
+      (r) => r.eventId === eventId && r.status === 'confirmed',
+    ).length
+
+    if (input.capacity < activeRegistrations) {
+      return {
+        success: false,
+        error: `Cannot reduce capacity below current active registrations (${activeRegistrations}).`,
+      }
+    }
+
+    event.capacity = input.capacity
+    event.seatsAvailable = input.capacity - activeRegistrations
+  }
+
+  if (input.name !== undefined) event.name = input.name.trim()
+  if (input.description !== undefined)
+    event.description = input.description.trim()
+  if (input.venue !== undefined) event.venue = input.venue.trim()
+  if (input.date !== undefined) event.date = input.date
+  if (input.category !== undefined) event.category = input.category
+
+  return { success: true, event }
+}
+
+export function cancelEvent(
+  user: AppUser | null | undefined,
+  eventId: string,
+): EventResult {
+  if (!user || user.role !== 'organizer') {
+    return { success: false, error: 'Only organizers can cancel events.' }
+  }
+  const event = getEventById(eventId)
+  if (!event) {
+    return { success: false, error: 'Event not found.' }
+  }
+  if (event.organizerId !== user.id) {
+    return { success: false, error: 'You can only cancel your own events.' }
+  }
+
+  event.cancelled = true
+  return { success: true, event }
+}
+
+export function deleteEvent(
+  user: AppUser | null | undefined,
+  eventId: string,
+): DeleteEventResult {
+  if (!user || user.role !== 'organizer') {
+    return { success: false, error: 'Only organizers can delete events.' }
+  }
+  const index = events.findIndex((e) => e.id === eventId)
+  if (index === -1) {
+    return { success: false, error: 'Event not found.' }
+  }
+  const event = events[index]
+  if (event.organizerId !== user.id) {
+    return { success: false, error: 'You can only delete your own events.' }
+  }
+
+  events.splice(index, 1)
+
+  for (let i = registrations.length - 1; i >= 0; i--) {
+    if (registrations[i].eventId === eventId) {
+      registrations.splice(i, 1)
+    }
+  }
+
+  return { success: true }
+}
+
 
