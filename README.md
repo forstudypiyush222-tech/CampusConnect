@@ -1,113 +1,141 @@
-# CampusConnect
+# 🎓 CampusConnect — Campus Event Discovery & Registration Platform
 
-CampusConnect is a campus event discovery, registration, and management platform built for college communities. It replaces scattered chat forwards and unmaintained noticeboards with a centralized hub where student clubs and departments publish events and students discover, register for, and manage their event attendance.
+> 🚀 **Live Demo:** [campus-event-desk.netlify.app](https://campus-event-desk.netlify.app/)
 
-## Features
+CampusConnect transforms fragmented college campus communication into a unified, real-time event desk. Instead of buried WhatsApp forwards or outdated cork noticeboards, student clubs publish upcoming events directly to the campus community while students discover, register, and manage their spots in seconds.
 
-### Students
-- **Browse Available Events:** Discover upcoming campus events categorized across Tech, Cultural, Sports, Workshop, Career, and Music. Past and cancelled events are automatically excluded from public listings.
-- **Search & Filter:** Find events instantly using case-insensitive search by name and category filtering, working concurrently with responsive empty states.
-- **View Event Details:** View complete event metadata including date, time, venue, category, and dynamic real-time seat counts.
-- **Register for Events:** Authenticated students can register for events with atomic seat decrements.
-- **Registration Protections:** Built-in validation blocks registration for full events, past events, cancelled events, duplicate registrations, and unauthenticated/organizer users.
-- **My Registrations & Cancellation:** Dedicated dashboard showing personal registrations grouped by upcoming and past events. Cancelling an active registration immediately restores the seat to the event.
-- **Account Creation & Session Persistence:** Create new student accounts with email validation and login persistence across browser reloads via `localStorage`.
+---
 
-### Organizers
-- **Create Events:** Publish new events with validation for name, description, venue, valid categories, positive integer capacity, and future dates.
-- **Edit Events:** Update event details and dynamically adjust capacity, preventing capacity reductions below existing active registrations.
-- **Cancel Events:** Mark events as cancelled, automatically hiding them from public student discovery while preserving organizer records.
-- **Delete Events:** Permanently remove events with cascading cleanup of associated registrations.
-- **Organizer Dashboard:** Dedicated organizer-only management dashboard restricted from student access.
+## 🌟 Key Highlights
 
-## Tech Stack
+- ⚡ **Zero-Friction Discovery:** Instant search, category filters, and real-time seat availability.
+- 🛡️ **Ironclad Registration Logic:** Built-in validation blocks duplicate signups, overcapacity registrations, and registration on past/cancelled events.
+- 🔄 **Full State & Session Persistence:** User accounts, active logins, registrations, and seat counts survive browser refresh via custom hydration-safe `localStorage` synchronization.
+- 👥 **Role-Based Access Control:** Distinct, protected workspaces for **Students** and **Organizers** with seamless account switching.
+- 🧪 **100% Tested:** 152 automated tests covering unit logic, business rules, edge cases, and persistence lifecycles.
 
-- **Framework:** Next.js 14 (App Router)
-- **Library:** React 18
-- **Language:** TypeScript
-- **Styling:** Vanilla CSS (CSS variables, modern card layouts, responsive grid)
-- **State & Persistence:** React Context (`AuthProvider`) backed by in-memory data stores synchronized with browser `localStorage`
-- **Testing:** Vitest
+---
 
-## Getting Started
+## ✨ Features
+
+### 🎓 For Students
+- **🔍 Browse & Discover:** Explore campus events spanning Tech, Cultural, Sports, Workshop, Career, and Music. Past and cancelled events are automatically filtered out from public feeds.
+- **⚡ Real-Time Search & Filters:** Find events instantly with partial, case-insensitive keyword search combined with category filters and graceful empty states.
+- **🎟️ 1-Click Registration:** Reserve seats with atomic seat decrements (`seatsAvailable - 1`).
+- **🛡️ Intelligent Registration Guards:** Built-in safeguards prevent duplicate registrations, registrations on full events, past events, or cancelled events.
+- **📋 My Registrations & Cancellation:** A personal dashboard organizing active upcoming vs. past registrations. Cancelling an event instantly restores the seat count to the event.
+- **🔐 Account Creation & Persistent Auth:** Sign up for new student accounts with email validation, or sign in using seeded accounts with full session persistence across reloads.
+
+### 🛠️ For Organizers
+- **➕ Event Creation Studio:** Publish new events with validation for title, description, venue, future dates, valid categories, and positive capacities.
+- **✏️ Dynamic Event Management:** Update event details on the fly. Capacity increases open seats immediately, while reductions below active attendee counts are strictly blocked.
+- **🚫 Event Cancellation:** Mark events as cancelled, automatically hiding them from student discovery while preserving organizer records.
+- **🗑️ Safe Cascading Deletion:** Permanently delete events with automatic cascading removal of associated student registrations.
+- **📊 Organizer Command Center:** A role-gated management view restricted to organizer accounts (`org-1`).
+
+---
+
+## 🧰 Tech Stack
+
+| Layer | Technology |
+| :--- | :--- |
+| **Framework** | Next.js 14 (App Router) |
+| **UI Library** | React 18 |
+| **Language** | TypeScript |
+| **Styling** | Vanilla CSS (CSS custom properties, modern card layouts, responsive grid) |
+| **State & Persistence** | React Context (`AuthProvider`) + in-memory store + `localStorage` sync |
+| **Testing** | Vitest (152 unit and integration tests) |
+| **Hosting** | Netlify ([campus-event-desk.netlify.app](https://campus-event-desk.netlify.app/)) |
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
-
 - Node.js 18.17+ or later
 - npm
 
-### Installation & Setup
+### 1. Clone & Install
+```bash
+git clone https://github.com/forstudypiyush222-tech/CampusConnect.git
+cd CampusConnect
+npm install
+```
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+### 2. Run the Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-2. **Start the development server:**
-   ```bash
-   npm run dev
-   ```
+---
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser.
+## 🔑 Demo Credentials
 
-### Demo Credentials
+Use pre-seeded credentials or create a new student account via the `/login` page:
 
-The application includes pre-seeded accounts for evaluation (or you can create a new student account via the `/login` page):
+| Role | Email | Password | Seed ID | Access Level |
+| :--- | :--- | :--- | :--- | :--- |
+| 🎓 **Student** | `aditi@campus.edu` | `student123` | `stu-1` | Browse, Register, My Registrations |
+| 🛠️ **Organizer** | `rohan@campus.edu` | `organizer123` | `org-1` | Create, Edit, Cancel, Delete Events |
 
-| Role | Email | Password | Seed ID |
-| :--- | :--- | :--- | :--- |
-| **Student** | `aditi@campus.edu` | `student123` | `stu-1` |
-| **Organizer** | `rohan@campus.edu` | `organizer123` | `org-1` |
+> 💡 **Quick Switch:** You can also switch active accounts instantly using the user-switcher dropdown in the top-right navigation bar.
 
-*Note: You can also switch users directly from the top-right navbar dropdown for quick testing.*
+---
 
-### Running Tests & Quality Checks
+## 🧪 Testing & Verification
 
-- **Run all automated tests (152 tests):**
-  ```bash
-  npm run test
-  ```
+CampusConnect includes a comprehensive automated test suite testing business rules, data models, state persistence, and regression integrity:
 
-- **Typecheck:**
-  ```bash
-  npx tsc --noEmit
-  ```
+```bash
+# Run the complete test suite (152 tests across 11 files)
+npm run test
 
-- **Production build:**
-  ```bash
-  npm run build
-  ```
+# TypeScript typechecking
+npx tsc --noEmit
 
-## Project Structure
+# Production build verification
+npm run build
+```
+
+---
+
+## 📂 Project Architecture
 
 ```text
 CampusConnect/
-├── app/
+├── 🌐 app/
 │   ├── events/
-│   │   ├── [id]/page.tsx      # Event detail & student registration
-│   │   └── page.tsx           # Event listing with search & category filters
+│   │   ├── [id]/page.tsx      # Event detail & student registration flow
+│   │   └── page.tsx           # Public event directory (search & category filters)
 │   ├── login/
-│   │   └── page.tsx           # Authentication (login & student signup)
+│   │   └── page.tsx           # Authentication portal (login & student signup)
 │   ├── organizer/
-│   │   └── page.tsx           # Organizer event management dashboard (CRUD)
+│   │   └── page.tsx           # Organizer event command dashboard (CRUD)
 │   ├── registrations/
 │   │   └── page.tsx           # Student registrations dashboard & cancellation
-│   ├── globals.css            # Design system, CSS variables & typography
+│   ├── globals.css            # Design tokens, CSS variables & typography
 │   ├── layout.tsx             # Root layout with AuthProvider, Navbar & Footer
-│   └── page.tsx               # Landing page with hero & upcoming events
-├── components/
-│   ├── AuthProvider.tsx       # Auth context, user/session state & hydration
-│   ├── EmptyState.tsx         # Reusable empty state view
-│   ├── EventCard.tsx          # Event card component
-│   ├── Footer.tsx             # Application footer
+│   └── page.tsx               # Home landing page with hero & featured events
+├── 🧩 components/
+│   ├── AuthProvider.tsx       # Auth context, session persistence & hydration guard
+│   ├── EmptyState.tsx         # Reusable graceful empty states
+│   ├── EventCard.tsx          # Responsive event card with category badge
+│   ├── Footer.tsx             # Global application footer
 │   ├── Navbar.tsx             # Sticky navigation, role indicators & user switcher
 │   └── StatusBadge.tsx        # Event & registration status tags
-├── data/
+├── 💾 data/
 │   ├── auth.ts                # User store, auth helpers, & account persistence
-│   ├── events.ts              # Event store, CRUD functions, & seat persistence
+│   ├── events.ts              # Event store, CRUD operations, & seat persistence
 │   └── registrations.ts       # Registration store & cancellation persistence
-├── tests/                     # 11 test suites covering all features & persistence
+├── 🧪 tests/                  # 11 test suites covering all features & persistence
 ├── package.json
 ├── tsconfig.json
 └── vitest.config.ts
 ```
+
+---
+
+## 🌐 Live Deployment
+
+- **Production URL:** [https://campus-event-desk.netlify.app/](https://campus-event-desk.netlify.app/)
